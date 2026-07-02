@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BA Team Capacity Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+  :root{--bg:#f5f6fa;--surface:#fff;--surface2:#f0f2f8;--border:#dde1ef;--accent:#2a78d6;--green:#1baf7a;--amber:#eda100;--red:#e34948;--purple:#7c3aed;--text:#1e2235;--muted:#767b8c;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);padding:1.5rem;max-width:1200px;margin:0 auto;}
+  header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);}
+  h1{font-size:1.2rem;font-weight:600;} .subtitle{font-size:0.78rem;color:var(--muted);margin-top:3px;}
+  #saveStatus{font-size:0.72rem;color:var(--muted);}
+  .nav{display:flex;gap:2px;margin-bottom:1.5rem;border-bottom:1px solid var(--border);}
+  .nav-btn{padding:0.55rem 1rem;font-size:0.82rem;font-weight:500;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .nav-btn.active{color:var(--text);border-bottom-color:var(--accent);}
+  .panel-wrap{display:none;}.panel-wrap.active{display:block;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;}
+  .card-title{font-size:0.85rem;font-weight:600;margin-bottom:1rem;}
+  .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;}
+  .card-header .card-title{margin-bottom:0;}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem;}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;}
+  .stat-label{font-size:0.72rem;color:var(--muted);margin-bottom:4px;} .stat-num{font-size:1.5rem;font-weight:600;}
+  .stat.danger .stat-num,.stat.danger .stat-label{color:var(--red);}
+  .stat.success .stat-num,.stat.success .stat-label{color:var(--green);}
+  .load-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .load-name{width:120px;font-size:0.8rem;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .load-track{flex:1;background:var(--surface2);border-radius:4px;height:16px;position:relative;overflow:hidden;}
+  .load-fill{height:100%;border-radius:4px;}
+  .load-pct{width:44px;font-size:0.8rem;text-align:right;font-weight:600;flex-shrink:0;}
+  .load-status{width:120px;font-size:0.72rem;flex-shrink:0;}
+  table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+  th{text-align:left;padding:8px 6px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);}
+  td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr.selected-row{background:#eff6ff;}
+  .cb{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:2px 5px;font-size:1rem;color:var(--muted);transition:color 0.15s;}
+  .icon-btn:hover.edit{color:var(--accent);} .icon-btn:hover.del{color:var(--red);}
+  .badge{display:inline-block;font-size:0.68rem;padding:2px 8px;border-radius:10px;font-weight:500;}
+  .badge-high{background:#fef2f2;color:var(--red);} .badge-medium{background:#fffbeb;color:var(--amber);}
+  .badge-low{background:#f0fdf4;color:var(--green);} .badge-active{background:#eff6ff;color:var(--accent);}
+  .badge-pipeline{background:#f5f3ff;color:var(--purple);} .badge-hold{background:#fff7ed;color:#ea580c;}
+  .badge-closed{background:var(--surface2);color:var(--muted);} .badge-junior{background:#f0fdf4;color:var(--green);}
+  .badge-mid{background:#eff6ff;color:var(--accent);} .badge-senior{background:#f5f3ff;color:var(--purple);}
+  .source-tag{font-size:0.68rem;background:var(--surface2);padding:2px 8px;border-radius:10px;color:var(--muted);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  .form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+  .form-grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+  .field label{font-size:0.75rem;color:var(--muted);display:block;margin-bottom:4px;}
+  input,select{font-family:inherit;font-size:0.82rem;padding:0.45rem 0.65rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);outline:none;width:100%;}
+  input:focus,select:focus{border-color:var(--accent);}
+  .btn{background:var(--accent);color:#fff;border:none;padding:0.55rem 1.1rem;border-radius:8px;font-size:0.82rem;font-weight:500;cursor:pointer;font-family:inherit;}
+  .btn-ghost{background:none;color:var(--muted);border:1px solid var(--border);padding:0.55rem 1.1rem;border-radius:8px;font-size:0.82rem;cursor:pointer;font-family:inherit;}
+  .btn-danger{background:none;color:var(--red);border:1px solid var(--red);padding:0.55rem 1.1rem;border-radius:8px;font-size:0.82rem;cursor:pointer;font-family:inherit;}
+  .btn:disabled,.btn-danger:disabled{opacity:0.4;cursor:not-allowed;}
+  .confirm-msg{font-size:0.78rem;color:var(--green);margin-top:8px;display:none;}
+  .error-msg{font-size:0.78rem;color:var(--red);margin-top:8px;display:none;}
+  .filters{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;} .filters input{flex:1;min-width:160px;}
+  .bulk-bar{display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;min-height:32px;flex-wrap:wrap;}
+  .bulk-count{font-size:0.8rem;color:var(--muted);}
+  .empty{color:var(--muted);font-size:0.8rem;padding:1rem 0;text-align:center;}
+  .export-group{display:flex;gap:6px;align-items:center;}
+  .export-btn{display:inline-flex;align-items:center;gap:5px;background:none;border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:0.75rem;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text);transition:border-color 0.15s,color 0.15s;}
+  .export-btn:hover{border-color:var(--accent);color:var(--accent);}
+  /* CHARTS */
+  .chart-wrap{width:100%;overflow:hidden;}
+  .chart-legend{display:flex;gap:1.25rem;margin-bottom:0.75rem;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text);}
+  .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+  svg.chart{width:100%;display:block;}
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:1000;display:none;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border-radius:14px;padding:1.5rem;width:100%;max-width:560px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-height:90vh;overflow-y:auto;}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;}
+  .modal-title{font-size:0.95rem;font-weight:600;}
+  .modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);line-height:1;}
+  .modal-footer{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end;}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>BA Team Capacity Tracker</h1><div class="subtitle">Allocation · Capacity · Forecasting</div></div>
+  <div id="saveStatus"></div>
+</header>
+<nav class="nav">
+  <button class="nav-btn active" data-panel="overview">Overview</button>
+  <button class="nav-btn" data-panel="allocations">Allocations</button>
+  <button class="nav-btn" data-panel="resources">Resources</button>
+  <button class="nav-btn" data-panel="projects">Projects & Demands</button>
+</nav>
+
+<!-- OVERVIEW -->
+<div class="panel-wrap active" id="panel-overview">
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total resources</div><div class="stat-num" id="s-team">0</div></div>
+    <div class="stat"><div class="stat-label">Avg utilization</div><div class="stat-num" id="s-avg">0%</div></div>
+    <div class="stat danger"><div class="stat-label">Overallocated</div><div class="stat-num" id="s-over">0</div></div>
+    <div class="stat success"><div class="stat-label">Available capacity</div><div class="stat-num" id="s-free">0%</div></div>
+  </div>
+  <div class="card"><div class="card-title">Current load by analyst</div><div id="load-bars"></div></div>
+  <div class="card">
+    <div class="card-title">4-week capacity forecast</div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#2a78d6"></div>Allocated (committed to projects)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e1e0d9;border:1px solid #ccc"></div>Available (free capacity)</div>
+    </div>
+    <div class="chart-wrap" id="forecast-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Allocation by project / demand</div>
+    <div class="chart-wrap" id="project-wrap"></div>
+  </div>
+</div>
+
+<!-- ALLOCATIONS -->
+<div class="panel-wrap" id="panel-allocations">
+  <div class="card">
+    <div class="card-title">Add allocation</div>
+    <div class="form-grid">
+      <div class="field"><label>Analyst *</label><input list="dl-resources" id="al-analyst" placeholder="Select or type analyst name"><datalist id="dl-resources"></datalist></div>
+      <div class="field"><label>Project / Demand *</label><input list="dl-projects" id="al-project" placeholder="Select or type project name"><datalist id="dl-projects"></datalist></div>
+    </div>
+    <div class="form-grid3">
+      <div class="field"><label>Allocation %</label><input type="number" id="al-pct" min="0" max="100" value="50"></div>
+      <div class="field"><label>Start date</label><input type="date" id="al-start"></div>
+      <div class="field"><label>End date</label><input type="date" id="al-end"></div>
+    </div>
+    <div class="form-grid" style="max-width:500px;">
+      <div class="field"><label>Source system</label>
+        <select id="al-source"><option>ServiceNow</option><option>Smartsheet</option><option>Azure DevOps</option><option>Manual</option></select>
+      </div>
+    </div>
+    <button class="btn" id="al-add-btn">Add allocation</button>
+    <p class="confirm-msg" id="al-confirm">Allocation added.</p>
+    <p class="error-msg" id="al-error"></p>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">All allocations</span>
+      <div class="export-group">
+        <button class="export-btn" id="al-export-csv">⬇ CSV</button>
+        <button class="export-btn" id="al-export-xlsx">⬇ Excel</button>
+      </div>
+    </div>
+    <div class="filters">
+      <input type="text" id="al-filter-name" placeholder="Filter by analyst">
+      <input type="text" id="al-filter-proj" placeholder="Filter by project">
+      <select id="al-filter-status" style="width:180px;">
+        <option value="all">All statuses</option><option value="over">Overallocated</option><option value="ok">Healthy</option><option value="under">Underutilized</option>
+      </select>
+    </div>
+    <div class="bulk-bar">
+      <span class="bulk-count" id="al-sel-count"></span>
+      <button class="btn-danger" id="al-bulk-del" disabled>Delete selected</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table><thead><tr>
+        <th style="width:32px;"><input type="checkbox" class="cb" id="al-check-all"></th>
+        <th>Analyst</th><th>Project / Demand</th><th style="text-align:right;">Allocation</th><th>Dates</th><th>Source</th><th style="width:50px;"></th>
+      </tr></thead><tbody id="al-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- RESOURCES -->
+<div class="panel-wrap" id="panel-resources">
+  <div class="card">
+    <div class="card-title">Add resource</div>
+    <div class="form-grid">
+      <div class="field"><label>Full name *</label><input type="text" id="res-name" placeholder="e.g. Aisha Khalid"></div>
+      <div class="field"><label>Email</label><input type="email" id="res-email" placeholder="aisha@company.com"></div>
+    </div>
+    <div class="form-grid3">
+      <div class="field"><label>Seniority</label><select id="res-seniority"><option>Junior</option><option selected>Mid</option><option>Senior</option></select></div>
+      <div class="field"><label>Max capacity %</label><input type="number" id="res-capacity" min="10" max="100" value="100"></div>
+      <div class="field"><label>Skills / specialisation</label><input type="text" id="res-skills" placeholder="e.g. Agile, Data, ERP"></div>
+    </div>
+    <button class="btn" id="res-add-btn">Add resource</button>
+    <p class="confirm-msg" id="res-confirm">Resource added.</p>
+    <p class="error-msg" id="res-error"></p>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Resources</span>
+      <div class="export-group">
+        <button class="export-btn" id="res-export-csv">⬇ CSV</button>
+        <button class="export-btn" id="res-export-xlsx">⬇ Excel</button>
+      </div>
+    </div>
+    <div class="bulk-bar">
+      <span class="bulk-count" id="res-sel-count"></span>
+      <button class="btn-danger" id="res-bulk-del" disabled>Delete selected</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table><thead><tr>
+        <th style="width:32px;"><input type="checkbox" class="cb" id="res-check-all"></th>
+        <th>Name</th><th>Email</th><th>Seniority</th><th>Max capacity</th><th>Skills</th><th>Current load</th><th style="width:70px;"></th>
+      </tr></thead><tbody id="res-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<div class="panel-wrap" id="panel-projects">
+  <div class="card">
+    <div class="card-title">Add project / demand</div>
+    <div class="form-grid">
+      <div class="field"><label>Name *</label><input type="text" id="proj-name" placeholder="e.g. Demand Mgmt redesign"></div>
+      <div class="field"><label>Owner / Sponsor</label><input type="text" id="proj-owner" placeholder="e.g. Head of IT"></div>
+    </div>
+    <div class="form-grid4">
+      <div class="field"><label>Priority</label><select id="proj-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+      <div class="field"><label>Status</label><select id="proj-status"><option>Active</option><option>Pipeline</option><option>On hold</option><option>Closed</option></select></div>
+      <div class="field"><label>Source system</label><select id="proj-source"><option>ServiceNow</option><option>Smartsheet</option><option>Azure DevOps</option><option>Manual</option></select></div>
+      <div class="field"><label>&nbsp;</label></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Start date</label><input type="date" id="proj-start"></div>
+      <div class="field"><label>End date</label><input type="date" id="proj-end"></div>
+    </div>
+    <button class="btn" id="proj-add-btn">Add project</button>
+    <p class="confirm-msg" id="proj-confirm">Project added.</p>
+    <p class="error-msg" id="proj-error"></p>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Projects & demands</span>
+      <div class="export-group">
+        <button class="export-btn" id="proj-export-csv">⬇ CSV</button>
+        <button class="export-btn" id="proj-export-xlsx">⬇ Excel</button>
+      </div>
+    </div>
+    <div class="bulk-bar">
+      <span class="bulk-count" id="proj-sel-count"></span>
+      <button class="btn-danger" id="proj-bulk-del" disabled>Delete selected</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table><thead><tr>
+        <th style="width:32px;"><input type="checkbox" class="cb" id="proj-check-all"></th>
+        <th>Name</th><th>Owner</th><th>Priority</th><th>Status</th><th>Source</th><th>Dates</th><th>Assigned BAs</th><th style="width:70px;"></th>
+      </tr></thead><tbody id="proj-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL: RESOURCE -->
+<div class="modal-overlay" id="res-modal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Edit resource</span><button class="modal-close" onclick="closeModal('res-modal')">✕</button></div>
+    <input type="hidden" id="edit-res-id">
+    <div class="form-grid">
+      <div class="field"><label>Full name *</label><input type="text" id="edit-res-name"></div>
+      <div class="field"><label>Email</label><input type="email" id="edit-res-email"></div>
+    </div>
+    <div class="form-grid3">
+      <div class="field"><label>Seniority</label><select id="edit-res-seniority"><option>Junior</option><option>Mid</option><option>Senior</option></select></div>
+      <div class="field"><label>Max capacity %</label><input type="number" id="edit-res-capacity" min="10" max="100"></div>
+      <div class="field"><label>Skills</label><input type="text" id="edit-res-skills"></div>
+    </div>
+    <p class="error-msg" id="edit-res-error"></p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('res-modal')">Cancel</button>
+      <button class="btn" id="edit-res-save">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL: PROJECT -->
+<div class="modal-overlay" id="proj-modal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Edit project / demand</span><button class="modal-close" onclick="closeModal('proj-modal')">✕</button></div>
+    <input type="hidden" id="edit-proj-id">
+    <div class="form-grid">
+      <div class="field"><label>Name *</label><input type="text" id="edit-proj-name"></div>
+      <div class="field"><label>Owner / Sponsor</label><input type="text" id="edit-proj-owner"></div>
+    </div>
+    <div class="form-grid4">
+      <div class="field"><label>Priority</label><select id="edit-proj-priority"><option>High</option><option>Medium</option><option>Low</option></select></div>
+      <div class="field"><label>Status</label><select id="edit-proj-status"><option>Active</option><option>Pipeline</option><option>On hold</option><option>Closed</option></select></div>
+      <div class="field"><label>Source system</label><select id="edit-proj-source"><option>ServiceNow</option><option>Smartsheet</option><option>Azure DevOps</option><option>Manual</option></select></div>
+      <div class="field"><label>&nbsp;</label></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Start date</label><input type="date" id="edit-proj-start"></div>
+      <div class="field"><label>End date</label><input type="date" id="edit-proj-end"></div>
+    </div>
+    <p class="error-msg" id="edit-proj-error"></p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('proj-modal')">Cancel</button>
+      <button class="btn" id="edit-proj-save">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const SK={res:'bact_resources',proj:'bact_projects',alloc:'bact_allocations'};
+let resources=[],projects=[],allocations=[];
+let nextResId=1,nextProjId=1,nextAllocId=1;
+
+const SEED_RES=[
+  {id:1,name:'Aisha K.',email:'aisha@company.com',seniority:'Senior',capacity:100,skills:'Agile, Process Improvement'},
+  {id:2,name:'Ben T.',email:'ben@company.com',seniority:'Mid',capacity:100,skills:'ServiceNow, UAT'},
+  {id:3,name:'Chen W.',email:'chen@company.com',seniority:'Senior',capacity:100,skills:'ERP, Data Analysis'},
+  {id:4,name:'Diego R.',email:'diego@company.com',seniority:'Mid',capacity:100,skills:'BPMN, Stakeholder Mgmt'},
+  {id:5,name:'Fatima A.',email:'fatima@company.com',seniority:'Junior',capacity:100,skills:'Documentation, UAT'},
+  {id:6,name:'Grace L.',email:'grace@company.com',seniority:'Senior',capacity:100,skills:'Digital Transformation, Agile'},
+  {id:7,name:'Hassan M.',email:'hassan@company.com',seniority:'Mid',capacity:80,skills:'SharePoint, Power Automate'},
+  {id:8,name:'Ines P.',email:'ines@company.com',seniority:'Junior',capacity:100,skills:'Requirements gathering'},
+  {id:9,name:'Jun S.',email:'jun@company.com',seniority:'Mid',capacity:100,skills:'Data, Reporting'},
+  {id:10,name:'Karim N.',email:'karim@company.com',seniority:'Junior',capacity:100,skills:'ServiceNow, Testing'}
+];
+const SEED_PROJ=[
+  {id:1,name:'Demand Mgmt redesign',owner:'CIO',priority:'High',status:'Active',source:'Azure DevOps',start:'2026-06-01',end:'2026-07-31'},
+  {id:2,name:'SharePoint BA site',owner:'BA Manager',priority:'Medium',status:'Active',source:'Smartsheet',start:'2026-06-15',end:'2026-07-15'},
+  {id:3,name:'CIO IT demand deck',owner:'CIO',priority:'High',status:'Active',source:'Manual',start:'2026-06-10',end:'2026-07-05'},
+  {id:4,name:'Journal Approval Workflow',owner:'Finance',priority:'High',status:'Active',source:'ServiceNow',start:'2026-05-20',end:'2026-07-10'},
+  {id:5,name:'Issue register follow-up',owner:'BA Manager',priority:'Medium',status:'Active',source:'Smartsheet',start:'2026-06-01',end:'2026-06-30'},
+  {id:6,name:'Service Catalogue Standardization',owner:'IT Ops',priority:'Medium',status:'Active',source:'ServiceNow',start:'2026-06-05',end:'2026-08-01'},
+  {id:7,name:'BA Framework rollout',owner:'BA Manager',priority:'High',status:'Active',source:'Smartsheet',start:'2026-06-01',end:'2026-07-20'}
+];
+const SEED_ALLOC=[
+  {id:1,analyst:'Aisha K.',project:'Demand Mgmt redesign',pct:60,start:'2026-06-01',end:'2026-07-31',source:'Azure DevOps'},
+  {id:2,analyst:'Aisha K.',project:'SharePoint BA site',pct:30,start:'2026-06-15',end:'2026-07-15',source:'Smartsheet'},
+  {id:3,analyst:'Ben T.',project:'CIO IT demand deck',pct:50,start:'2026-06-10',end:'2026-07-05',source:'Manual'},
+  {id:4,analyst:'Chen W.',project:'Journal Approval Workflow',pct:80,start:'2026-05-20',end:'2026-07-10',source:'ServiceNow'},
+  {id:5,analyst:'Chen W.',project:'Issue register follow-up',pct:40,start:'2026-06-01',end:'2026-06-30',source:'Smartsheet'},
+  {id:6,analyst:'Diego R.',project:'Service Catalogue Standardization',pct:70,start:'2026-06-05',end:'2026-08-01',source:'ServiceNow'},
+  {id:7,analyst:'Fatima A.',project:'Demand Mgmt redesign',pct:40,start:'2026-06-01',end:'2026-07-31',source:'Azure DevOps'},
+  {id:8,analyst:'Grace L.',project:'BA Framework rollout',pct:90,start:'2026-06-01',end:'2026-07-20',source:'Smartsheet'},
+  {id:9,analyst:'Hassan M.',project:'SharePoint BA site',pct:35,start:'2026-06-15',end:'2026-07-15',source:'Smartsheet'},
+  {id:10,analyst:'Ines P.',project:'CIO IT demand deck',pct:25,start:'2026-06-10',end:'2026-07-05',source:'Manual'},
+  {id:11,analyst:'Jun S.',project:'Issue register follow-up',pct:20,start:'2026-06-01',end:'2026-06-30',source:'Smartsheet'},
+  {id:12,analyst:'Karim N.',project:'Service Catalogue Standardization',pct:30,start:'2026-06-05',end:'2026-08-01',source:'ServiceNow'}
+];
+
+// ── Persist ───────────────────────────────────────────────────────────────
+function flash(msg,ms){const e=document.getElementById('saveStatus');e.textContent=msg;if(ms)setTimeout(()=>{if(e.textContent===msg)e.textContent='';},ms);}
+function save(){
+  try{localStorage.setItem(SK.res,JSON.stringify(resources));localStorage.setItem(SK.proj,JSON.stringify(projects));localStorage.setItem(SK.alloc,JSON.stringify(allocations));flash('Saved ✓',1200);}
+  catch(e){flash('Save failed: '+e.message,4000);}
+}
+function load(){
+  try{
+    const r=localStorage.getItem(SK.res),p=localStorage.getItem(SK.proj),a=localStorage.getItem(SK.alloc);
+    if(r&&p&&a){
+      resources=JSON.parse(r);projects=JSON.parse(p);allocations=JSON.parse(a);
+      nextResId=Math.max(0,...resources.map(x=>x.id))+1;
+      nextProjId=Math.max(0,...projects.map(x=>x.id))+1;
+      nextAllocId=Math.max(0,...allocations.map(x=>x.id))+1;
+      flash('Data loaded ✓',1500);
+    } else {
+      resources=SEED_RES.slice();projects=SEED_PROJ.slice();allocations=SEED_ALLOC.slice();
+      nextResId=11;nextProjId=8;nextAllocId=13;
+      save();
+      flash('Sample data loaded',2000);
+    }
+  }catch(e){
+    resources=SEED_RES.slice();projects=SEED_PROJ.slice();allocations=SEED_ALLOC.slice();
+    nextResId=11;nextProjId=8;nextAllocId=13;
+    flash('Load error – using sample data',3000);
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function totalsByAnalyst(){const t={};resources.forEach(r=>t[r.name]=0);allocations.forEach(a=>{t[a.analyst]=(t[a.analyst]||0)+a.pct;});return t;}
+function badgeHtml(v){const map={High:'badge-high',Medium:'badge-medium',Low:'badge-low',Active:'badge-active',Pipeline:'badge-pipeline','On hold':'badge-hold',Closed:'badge-closed',Junior:'badge-junior',Mid:'badge-mid',Senior:'badge-senior'};return`<span class="badge ${map[v]||''}">${v}</span>`;}
+function showConfirm(id){const el=document.getElementById(id);el.style.display='block';setTimeout(()=>el.style.display='none',2000);}
+function showError(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
+function refreshDL(){
+  document.getElementById('dl-resources').innerHTML=resources.map(r=>`<option value="${r.name}">`).join('');
+  document.getElementById('dl-projects').innerHTML=projects.map(p=>`<option value="${p.name}">`).join('');
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel-wrap').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.panel).classList.add('active');
+    const t=btn.dataset.panel;
+    if(t==='overview')renderOverview();
+    if(t==='allocations'){refreshDL();renderAllocations();}
+    if(t==='resources')renderResources();
+    if(t==='projects')renderProjects();
+  });
+});
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+// ── SVG CHARTS (no dependencies) ─────────────────────────────────────────
+function makeForecastChart(weeks,allocated,available,teamCap){
+  const W=600,H=200,pad={t:10,r:20,b:30,l:50};
+  const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const bw=Math.min(60,cw/weeks.length-16);
+  const gap=(cw-weeks.length*bw)/(weeks.length+1);
+  const yMax=teamCap||1000;
+  const ys=v=>(ch-(v/yMax)*ch)+pad.t;
+  let bars='',labels='',yAxis='';
+  // y axis ticks
+  [0,25,50,75,100].forEach(p=>{
+    const yv=(p/100)*yMax,y=ys(yv);
+    yAxis+=`<line x1="${pad.l-5}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#e1e0d9" stroke-width="1"/>`;
+    yAxis+=`<text x="${pad.l-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#767b8c">${Math.round(yv)}%</text>`;
+  });
+  weeks.forEach((w,i)=>{
+    const x=pad.l+gap+(i*(bw+gap));
+    const aH=(allocated[i]/yMax)*ch,vH=(available[i]/yMax)*ch;
+    const aY=pad.t+ch-aH-vH,vY=pad.t+ch-vH;
+    bars+=`<rect x="${x}" y="${aY}" width="${bw}" height="${aH}" rx="3" fill="#2a78d6"/>`;
+    bars+=`<rect x="${x}" y="${vY}" width="${bw}" height="${vH}" rx="3" fill="#e1e0d9"/>`;
+    labels+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="#1e2235">${w}</text>`;
+    if(allocated[i]>0){
+      const midY=aY+aH/2+4;
+      if(aH>16)bars+=`<text x="${x+bw/2}" y="${midY}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${allocated[i]}%</text>`;
+    }
+  });
+  return`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${yAxis}${bars}${labels}</svg>`;
+}
+
+function makeProjectChart(labels,values,colors){
+  if(!labels.length)return'<p class="empty">No allocations yet.</p>';
+  const rowH=28,pad={t:10,r:80,b:10,l:200};
+  const H=labels.length*rowH+pad.t+pad.b;
+  const W=600;const cw=W-pad.l-pad.r;
+  const maxVal=Math.max(...values,1);
+  let bars='',lbls='',vals='';
+  labels.forEach((lbl,i)=>{
+    const y=pad.t+i*rowH;
+    const bw=(values[i]/maxVal)*cw;
+    const color=colors[i%colors.length];
+    bars+=`<rect x="${pad.l}" y="${y+4}" width="${Math.max(bw,2)}" height="${rowH-10}" rx="3" fill="${color}"/>`;
+    lbls+=`<text x="${pad.l-8}" y="${y+rowH/2+4}" text-anchor="end" font-size="11" fill="#1e2235">${lbl.length>22?lbl.slice(0,21)+'…':lbl}</text>`;
+    vals+=`<text x="${pad.l+bw+6}" y="${y+rowH/2+4}" font-size="11" fill="#767b8c">${values[i]}%</text>`;
+  });
+  return`<svg class="chart" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="height:${H}px">${bars}${lbls}${vals}</svg>`;
+}
+
+// ── OVERVIEW ─────────────────────────────────────────────────────────────
+function renderOverview(){
+  const totals=totalsByAnalyst();const names=Object.keys(totals);const vals=Object.values(totals);
+  const avg=vals.length?Math.round(vals.reduce((s,v)=>s+v,0)/vals.length):0;
+  const over=vals.filter(v=>v>100).length;const free=Math.max(0,Math.round(100-avg));
+  document.getElementById('s-team').textContent=names.length;
+  document.getElementById('s-avg').textContent=avg+'%';
+  document.getElementById('s-over').textContent=over;
+  document.getElementById('s-free').textContent=free+'%';
+
+  const bars=document.getElementById('load-bars');bars.innerHTML='';
+  if(!names.length){bars.innerHTML='<div class="empty">No resources yet.</div>';return;}
+  names.forEach(name=>{
+    const res=resources.find(r=>r.name===name);const maxCap=res?res.capacity:100;const pct=totals[name]||0;const ratio=maxCap>0?pct/maxCap:0;
+    let color='var(--green)',statusText='Healthy';
+    if(ratio>1){color='var(--red)';statusText='Overallocated';}
+    else if(ratio>=0.85){color='var(--amber)';statusText='Near capacity';}
+    else if(ratio<0.5){color='var(--muted)';statusText='Underutilized';}
+    const row=document.createElement('div');row.className='load-row';
+    row.innerHTML=`<span class="load-name" title="${name}">${name}</span><div class="load-track"><div class="load-fill" style="width:${Math.min(pct,100)}%;background:${color};"></div>${pct>100?`<div style="position:absolute;left:0;top:0;width:100%;height:100%;border:1.5px dashed ${color};border-radius:4px;box-sizing:border-box;"></div>`:''}</div><span class="load-pct">${pct}%</span><span class="load-status" style="color:${color};">${statusText}</span>`;
+    bars.appendChild(row);
+  });
+
+  // Forecast
+  const weeks=['This week','Week 2','Week 3','Week 4'];
+  const teamCap=Math.max(1,resources.length)*100;
+  const alloc=weeks.map((_,i)=>{const d=new Date();d.setDate(d.getDate()+i*7);return Math.round(allocations.filter(a=>d>=new Date(a.start)&&d<=new Date(a.end)).reduce((s,a)=>s+a.pct,0));});
+  const avail=alloc.map(a=>Math.max(0,teamCap-a));
+  document.getElementById('forecast-wrap').innerHTML=makeForecastChart(weeks,alloc,avail,teamCap);
+
+  // Project chart
+  const ptotals={};allocations.forEach(a=>{ptotals[a.project]=(ptotals[a.project]||0)+a.pct;});
+  const plabels=Object.keys(ptotals);const pvals=Object.values(ptotals);
+  const colors=['#2a78d6','#1baf7a','#eda100','#7c3aed','#e34948','#e87ba4','#eb6834','#008300'];
+  document.getElementById('project-wrap').innerHTML=makeProjectChart(plabels,pvals,colors);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────
+function escCsv(v){const s=String(v==null?'':v);return/[,"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function toCsv(rows){return rows.map(r=>r.map(escCsv).join(',')).join('\n');}
+function dlFile(content,filename,mime){const blob=new Blob([content],{type:mime});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);}
+function toXlsxXml(headers,rows,sheetName){
+  // Build a simple SpreadsheetML XML that Excel opens natively — no library needed
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const cellType=v=>(typeof v==='number'?'n':'s');
+  const rowXml=cells=>`<Row>${cells.map(c=>`<Cell><Data ss:Type="${cellType(c)}">${esc(c)}</Data></Cell>`).join('')}</Row>`;
+  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="${esc(sheetName)}"><Table>${rowXml(headers)}${rows.map(rowXml).join('')}</Table></Worksheet></Workbook>`;
+  return xml;
+}
+function today(){return new Date().toISOString().slice(0,10);}
+
+document.getElementById('al-export-csv').addEventListener('click',()=>{
+  const rows=[['Analyst','Project / Demand','Allocation %','Start Date','End Date','Source'],...allocations.map(a=>[a.analyst,a.project,a.pct,a.start,a.end,a.source])];
+  dlFile(toCsv(rows),`allocations_${today()}.csv`,'text/csv');
+});
+document.getElementById('al-export-xlsx').addEventListener('click',()=>{
+  const h=['Analyst','Project / Demand','Allocation %','Start Date','End Date','Source'];
+  const rows=allocations.map(a=>[a.analyst,a.project,a.pct,a.start,a.end,a.source]);
+  dlFile(toXlsxXml(h,rows,'Allocations'),`allocations_${today()}.xls`,'application/vnd.ms-excel');
+});
+document.getElementById('res-export-csv').addEventListener('click',()=>{
+  const totals=totalsByAnalyst();
+  const rows=[['Name','Email','Seniority','Max Capacity %','Skills','Current Load %'],...resources.map(r=>[r.name,r.email||'',r.seniority,r.capacity,r.skills||'',totals[r.name]||0])];
+  dlFile(toCsv(rows),`resources_${today()}.csv`,'text/csv');
+});
+document.getElementById('res-export-xlsx').addEventListener('click',()=>{
+  const totals=totalsByAnalyst();
+  const h=['Name','Email','Seniority','Max Capacity %','Skills','Current Load %'];
+  const rows=resources.map(r=>[r.name,r.email||'',r.seniority,r.capacity,r.skills||'',totals[r.name]||0]);
+  dlFile(toXlsxXml(h,rows,'Resources'),`resources_${today()}.xls`,'application/vnd.ms-excel');
+});
+document.getElementById('proj-export-csv').addEventListener('click',()=>{
+  const rows=[['Name','Owner','Priority','Status','Source','Start Date','End Date','Assigned BAs'],...projects.map(p=>{const bas=[...new Set(allocations.filter(a=>a.project===p.name).map(a=>a.analyst))];return[p.name,p.owner||'',p.priority,p.status,p.source,p.start||'',p.end||'',bas.join('; ')];})];
+  dlFile(toCsv(rows),`projects_${today()}.csv`,'text/csv');
+});
+document.getElementById('proj-export-xlsx').addEventListener('click',()=>{
+  const h=['Name','Owner','Priority','Status','Source','Start Date','End Date','Assigned BAs'];
+  const rows=projects.map(p=>{const bas=[...new Set(allocations.filter(a=>a.project===p.name).map(a=>a.analyst))];return[p.name,p.owner||'',p.priority,p.status,p.source,p.start||'',p.end||'',bas.join('; ')];});
+  dlFile(toXlsxXml(h,rows,'Projects'),`projects_${today()}.xls`,'application/vnd.ms-excel');
+});
+
+// ── ALLOCATIONS ───────────────────────────────────────────────────────────
+let alSel=new Set();
+document.getElementById('al-check-all').addEventListener('change',function(){
+  const vis=getFilteredAlloc().map(a=>a.id);
+  if(this.checked)vis.forEach(id=>alSel.add(id));else vis.forEach(id=>alSel.delete(id));
+  renderAllocations();
+});
+document.getElementById('al-bulk-del').addEventListener('click',()=>{
+  if(!alSel.size)return;
+  if(!confirm(`Delete ${alSel.size} allocation(s)?`))return;
+  allocations=allocations.filter(a=>!alSel.has(a.id));alSel=new Set();save();renderAllocations();
+});
+function getFilteredAlloc(){
+  const nf=document.getElementById('al-filter-name').value.toLowerCase();
+  const pf=document.getElementById('al-filter-proj').value.toLowerCase();
+  const sf=document.getElementById('al-filter-status').value;
+  const totals=totalsByAnalyst();
+  return allocations.filter(a=>{
+    if(!a.analyst.toLowerCase().includes(nf))return false;
+    if(!a.project.toLowerCase().includes(pf))return false;
+    const t=totals[a.analyst]||0;
+    if(sf==='over'&&t<=100)return false;
+    if(sf==='under'&&t>=50)return false;
+    if(sf==='ok'&&(t<50||t>100))return false;
+    return true;
+  });
+}
+document.getElementById('al-add-btn').addEventListener('click',()=>{
+  const analyst=document.getElementById('al-analyst').value.trim(),project=document.getElementById('al-project').value.trim();
+  const pct=parseInt(document.getElementById('al-pct').value)||0,start=document.getElementById('al-start').value,end=document.getElementById('al-end').value,source=document.getElementById('al-source').value;
+  if(!analyst){showError('al-error','Analyst name is required.');return;}
+  if(!project){showError('al-error','Project name is required.');return;}
+  if(!start||!end){showError('al-error','Start and end dates are required.');return;}
+  if(new Date(end)<new Date(start)){showError('al-error','End date must be after start date.');return;}
+  allocations.push({id:nextAllocId++,analyst,project,pct,start,end,source});save();
+  document.getElementById('al-analyst').value='';document.getElementById('al-project').value='';
+  showConfirm('al-confirm');renderAllocations();
+});
+['al-filter-name','al-filter-proj'].forEach(id=>document.getElementById(id).addEventListener('input',renderAllocations));
+document.getElementById('al-filter-status').addEventListener('change',renderAllocations);
+function renderAllocations(){
+  const filtered=getFilteredAlloc();const tbody=document.getElementById('al-tbody');tbody.innerHTML='';
+  const visIds=filtered.map(a=>a.id);
+  const allChk=visIds.length>0&&visIds.every(id=>alSel.has(id));
+  const someChk=visIds.some(id=>alSel.has(id));
+  const ca=document.getElementById('al-check-all');ca.checked=allChk;ca.indeterminate=!allChk&&someChk;
+  document.getElementById('al-bulk-del').disabled=alSel.size===0;
+  document.getElementById('al-sel-count').textContent=alSel.size>0?`${alSel.size} selected`:'';
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" class="empty">No matching allocations.</td></tr>';return;}
+  filtered.forEach(a=>{
+    const tr=document.createElement('tr');if(alSel.has(a.id))tr.classList.add('selected-row');
+    tr.innerHTML=`<td><input type="checkbox" class="cb al-cb" data-id="${a.id}" ${alSel.has(a.id)?'checked':''}></td><td>${a.analyst}</td><td>${a.project}</td><td style="text-align:right;font-weight:600;">${a.pct}%</td><td style="color:var(--muted);white-space:nowrap;">${a.start} → ${a.end}</td><td><span class="source-tag">${a.source}</span></td><td><button class="icon-btn del al-del" data-id="${a.id}">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.querySelectorAll('.al-cb').forEach(cb=>cb.addEventListener('change',function(){const id=parseInt(this.dataset.id);if(this.checked)alSel.add(id);else alSel.delete(id);renderAllocations();}));
+  document.querySelectorAll('.al-del').forEach(btn=>btn.addEventListener('click',()=>{if(!confirm('Remove this allocation?'))return;allocations=allocations.filter(a=>a.id!==parseInt(btn.dataset.id));alSel.delete(parseInt(btn.dataset.id));save();renderAllocations();}));
+}
+
+// ── RESOURCES ─────────────────────────────────────────────────────────────
+let resSel=new Set();
+document.getElementById('res-check-all').addEventListener('change',function(){resSel=this.checked?new Set(resources.map(r=>r.id)):new Set();renderResources();});
+document.getElementById('res-bulk-del').addEventListener('click',()=>{
+  if(!resSel.size)return;
+  if(!confirm(`Delete ${resSel.size} resource(s)?`))return;
+  resources=resources.filter(r=>!resSel.has(r.id));resSel=new Set();save();renderResources();refreshDL();
+});
+document.getElementById('res-add-btn').addEventListener('click',()=>{
+  const name=document.getElementById('res-name').value.trim(),email=document.getElementById('res-email').value.trim(),seniority=document.getElementById('res-seniority').value,capacity=parseInt(document.getElementById('res-capacity').value)||100,skills=document.getElementById('res-skills').value.trim();
+  if(!name){showError('res-error','Name is required.');return;}
+  if(resources.find(r=>r.name.toLowerCase()===name.toLowerCase())){showError('res-error','A resource with this name already exists.');return;}
+  resources.push({id:nextResId++,name,email,seniority,capacity,skills});save();
+  document.getElementById('res-name').value='';document.getElementById('res-email').value='';document.getElementById('res-skills').value='';document.getElementById('res-capacity').value=100;
+  showConfirm('res-confirm');renderResources();refreshDL();
+});
+function renderResources(){
+  const totals=totalsByAnalyst();const tbody=document.getElementById('res-tbody');tbody.innerHTML='';
+  const allChk=resources.length>0&&resources.every(r=>resSel.has(r.id));
+  document.getElementById('res-check-all').checked=allChk;
+  document.getElementById('res-check-all').indeterminate=!allChk&&resSel.size>0;
+  document.getElementById('res-bulk-del').disabled=resSel.size===0;
+  document.getElementById('res-sel-count').textContent=resSel.size>0?`${resSel.size} selected`:'';
+  if(!resources.length){tbody.innerHTML='<tr><td colspan="8" class="empty">No resources yet.</td></tr>';return;}
+  resources.forEach(r=>{
+    const pct=totals[r.name]||0;let color='var(--green)';
+    if(pct>r.capacity)color='var(--red)';else if(pct>=r.capacity*0.85)color='var(--amber)';else if(pct<r.capacity*0.5)color='var(--muted)';
+    const tr=document.createElement('tr');if(resSel.has(r.id))tr.classList.add('selected-row');
+    tr.innerHTML=`<td><input type="checkbox" class="cb res-cb" data-id="${r.id}" ${resSel.has(r.id)?'checked':''}></td><td><strong>${r.name}</strong></td><td style="color:var(--muted);">${r.email||'—'}</td><td>${badgeHtml(r.seniority)}</td><td>${r.capacity}%</td><td style="color:var(--muted);font-size:0.75rem;">${r.skills||'—'}</td><td style="font-weight:600;color:${color};">${pct}%</td><td style="white-space:nowrap;"><button class="icon-btn edit res-edit" data-id="${r.id}" title="Edit">✏️</button><button class="icon-btn del res-del" data-id="${r.id}" title="Delete">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.querySelectorAll('.res-cb').forEach(cb=>cb.addEventListener('change',function(){const id=parseInt(this.dataset.id);if(this.checked)resSel.add(id);else resSel.delete(id);renderResources();}));
+  document.querySelectorAll('.res-edit').forEach(btn=>btn.addEventListener('click',()=>openResEdit(parseInt(btn.dataset.id))));
+  document.querySelectorAll('.res-del').forEach(btn=>btn.addEventListener('click',()=>{if(!confirm('Delete this resource?'))return;resources=resources.filter(r=>r.id!==parseInt(btn.dataset.id));resSel.delete(parseInt(btn.dataset.id));save();renderResources();refreshDL();}));
+}
+function openResEdit(id){
+  const r=resources.find(x=>x.id===id);if(!r)return;
+  document.getElementById('edit-res-id').value=id;document.getElementById('edit-res-name').value=r.name;
+  document.getElementById('edit-res-email').value=r.email||'';document.getElementById('edit-res-seniority').value=r.seniority;
+  document.getElementById('edit-res-capacity').value=r.capacity;document.getElementById('edit-res-skills').value=r.skills||'';
+  openModal('res-modal');
+}
+document.getElementById('edit-res-save').addEventListener('click',()=>{
+  const id=parseInt(document.getElementById('edit-res-id').value),name=document.getElementById('edit-res-name').value.trim();
+  if(!name){showError('edit-res-error','Name is required.');return;}
+  const dup=resources.find(r=>r.name.toLowerCase()===name.toLowerCase()&&r.id!==id);
+  if(dup){showError('edit-res-error','Another resource already has this name.');return;}
+  const r=resources.find(x=>x.id===id);if(!r)return;
+  const old=r.name;r.name=name;r.email=document.getElementById('edit-res-email').value.trim();
+  r.seniority=document.getElementById('edit-res-seniority').value;r.capacity=parseInt(document.getElementById('edit-res-capacity').value)||100;r.skills=document.getElementById('edit-res-skills').value.trim();
+  if(old!==name)allocations.forEach(a=>{if(a.analyst===old)a.analyst=name;});
+  save();closeModal('res-modal');renderResources();refreshDL();
+});
+
+// ── PROJECTS ──────────────────────────────────────────────────────────────
+let projSel=new Set();
+document.getElementById('proj-check-all').addEventListener('change',function(){projSel=this.checked?new Set(projects.map(p=>p.id)):new Set();renderProjects();});
+document.getElementById('proj-bulk-del').addEventListener('click',()=>{
+  if(!projSel.size)return;
+  if(!confirm(`Delete ${projSel.size} project(s)?`))return;
+  projects=projects.filter(p=>!projSel.has(p.id));projSel=new Set();save();renderProjects();refreshDL();
+});
+document.getElementById('proj-add-btn').addEventListener('click',()=>{
+  const name=document.getElementById('proj-name').value.trim(),owner=document.getElementById('proj-owner').value.trim(),priority=document.getElementById('proj-priority').value,status=document.getElementById('proj-status').value,source=document.getElementById('proj-source').value,start=document.getElementById('proj-start').value,end=document.getElementById('proj-end').value;
+  if(!name){showError('proj-error','Project name is required.');return;}
+  if(projects.find(p=>p.name.toLowerCase()===name.toLowerCase())){showError('proj-error','A project with this name already exists.');return;}
+  projects.push({id:nextProjId++,name,owner,priority,status,source,start,end});save();
+  document.getElementById('proj-name').value='';document.getElementById('proj-owner').value='';document.getElementById('proj-start').value='';document.getElementById('proj-end').value='';
+  showConfirm('proj-confirm');renderProjects();refreshDL();
+});
+function renderProjects(){
+  const tbody=document.getElementById('proj-tbody');tbody.innerHTML='';
+  const allChk=projects.length>0&&projects.every(p=>projSel.has(p.id));
+  document.getElementById('proj-check-all').checked=allChk;
+  document.getElementById('proj-check-all').indeterminate=!allChk&&projSel.size>0;
+  document.getElementById('proj-bulk-del').disabled=projSel.size===0;
+  document.getElementById('proj-sel-count').textContent=projSel.size>0?`${projSel.size} selected`:'';
+  if(!projects.length){tbody.innerHTML='<tr><td colspan="9" class="empty">No projects yet.</td></tr>';return;}
+  projects.forEach(p=>{
+    const bas=[...new Set(allocations.filter(a=>a.project===p.name).map(a=>a.analyst))];
+    const tr=document.createElement('tr');if(projSel.has(p.id))tr.classList.add('selected-row');
+    tr.innerHTML=`<td><input type="checkbox" class="cb proj-cb" data-id="${p.id}" ${projSel.has(p.id)?'checked':''}></td><td><strong>${p.name}</strong></td><td style="color:var(--muted);">${p.owner||'—'}</td><td>${badgeHtml(p.priority)}</td><td>${badgeHtml(p.status)}</td><td><span class="source-tag">${p.source}</span></td><td style="color:var(--muted);white-space:nowrap;font-size:0.75rem;">${p.start||'—'}${p.end?' → '+p.end:''}</td><td style="font-size:0.75rem;color:var(--muted);">${bas.length?bas.join(', '):'None'}</td><td style="white-space:nowrap;"><button class="icon-btn edit proj-edit" data-id="${p.id}" title="Edit">✏️</button><button class="icon-btn del proj-del" data-id="${p.id}" title="Delete">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.querySelectorAll('.proj-cb').forEach(cb=>cb.addEventListener('change',function(){const id=parseInt(this.dataset.id);if(this.checked)projSel.add(id);else projSel.delete(id);renderProjects();}));
+  document.querySelectorAll('.proj-edit').forEach(btn=>btn.addEventListener('click',()=>openProjEdit(parseInt(btn.dataset.id))));
+  document.querySelectorAll('.proj-del').forEach(btn=>btn.addEventListener('click',()=>{if(!confirm('Delete this project?'))return;projects=projects.filter(p=>p.id!==parseInt(btn.dataset.id));projSel.delete(parseInt(btn.dataset.id));save();renderProjects();refreshDL();}));
+}
+function openProjEdit(id){
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  document.getElementById('edit-proj-id').value=id;document.getElementById('edit-proj-name').value=p.name;
+  document.getElementById('edit-proj-owner').value=p.owner||'';document.getElementById('edit-proj-priority').value=p.priority;
+  document.getElementById('edit-proj-status').value=p.status;document.getElementById('edit-proj-source').value=p.source;
+  document.getElementById('edit-proj-start').value=p.start||'';document.getElementById('edit-proj-end').value=p.end||'';
+  openModal('proj-modal');
+}
+document.getElementById('edit-proj-save').addEventListener('click',()=>{
+  const id=parseInt(document.getElementById('edit-proj-id').value),name=document.getElementById('edit-proj-name').value.trim();
+  if(!name){showError('edit-proj-error','Name is required.');return;}
+  const dup=projects.find(p=>p.name.toLowerCase()===name.toLowerCase()&&p.id!==id);
+  if(dup){showError('edit-proj-error','Another project already has this name.');return;}
+  const p=projects.find(x=>x.id===id);if(!p)return;
+  const old=p.name;p.name=name;p.owner=document.getElementById('edit-proj-owner').value.trim();
+  p.priority=document.getElementById('edit-proj-priority').value;p.status=document.getElementById('edit-proj-status').value;
+  p.source=document.getElementById('edit-proj-source').value;p.start=document.getElementById('edit-proj-start').value;p.end=document.getElementById('edit-proj-end').value;
+  if(old!==name)allocations.forEach(a=>{if(a.project===old)a.project=name;});
+  save();closeModal('proj-modal');renderProjects();refreshDL();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+load();refreshDL();renderOverview();
+</script>
+</body>
+</html>
